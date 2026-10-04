@@ -1,0 +1,51 @@
+name: pages
+
+# The site is the build of whatever master holds, so it is rebuilt on every push to it.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and a push that lands mid-build wins.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      # The one test in the repository: it runs the capture script against a stubbed browser, so a
+      # break in it is caught here rather than on someone's next run.
+      - run: pnpm check-dump replays/itamuyu-5787m-0aff0c7dba49.json.gz
+      - uses: actions/configure-pages@v5
+      - run: pnpm build
+        env:
+          # The link in the header, pointed at whichever repository this was built from.
+          VITE_GITHUB: ${{ github.server_url }}/${{ github.repository }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

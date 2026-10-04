@@ -1,0 +1,38 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  // Everything git tracks, which is also how new files come to be covered without being listed.
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": { "quoteStyle": "double", "trailingCommas": "none" }
+  },
+  "linter": {
+    "rules": {
+      "suspicious": {
+        // The client's state dumps arrive untyped and `anchors.ts` is the one place that says what
+        // is in them. A cast per field would claim no more than the parse already does.
+        "noExplicitAny": "off"
+      },
+      "style": {
+        // An assertion here is an invariant said out loud -- the thing that ought to crash if it
+        // ever stops holding -- rather than an optional value waved through.
+        "noNonNullAssertion": "off",
+        // It pairs rules that can never match the same element, `#round b` against `.segment b`.
+        // The sheet is ordered by the part of the page each block dresses.
+        "noDescendingSpecificity": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // A userscript is a classic script in someone else's page, not a module, so the directive is
+      // the only thing putting it in strict mode.
+      "includes": ["**/*.user.js"],
+      "linter": { "rules": { "suspicious": { "noRedundantUseStrict": "off" } } }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "tetracer",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.28.4",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "fmt": "biome check --write",
+    "lint": "biome check",
+    "preview": "vite preview",
+    "serve": "vite build && vite preview",
+    "inspect": "node --experimental-strip-types scripts/inspect.ts",
+    "check-dump": "node --experimental-strip-types scripts/check-dump.ts"
+  },
+  "dependencies": {
+    "@haelp/teto": "^4.2.7"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@types/node": "^22.20.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}

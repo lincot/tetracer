@@ -1,0 +1,3 @@
+allowBuilds:
+  # Optional native accelerator for msgpackr, which only the engine's network code touches.
+  msgpackr-extract: false

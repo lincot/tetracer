@@ -1,0 +1,709 @@
+:root {
+  /* Violet, after the T piece -- the one this whole thing is about. */
+  --bg: #0c0716;
+  --panel: #1a1230;
+  --line: #3a2a5e;
+  --text: #ece4fb;
+  --muted: #a194c4;
+  --accent: #b47bff;
+  --raised: #241a3e;
+  --sunken: #130d24;
+  --radius: 7px;
+
+  /*
+   * No face is loaded over the wire -- the trainer works with nothing but the files on disk and
+   * ought to keep doing so -- so the character comes from the treatment: structure in small caps
+   * with wide tracking, and every figure in the same monospace so columns of them line up.
+   */
+  --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", monospace;
+  --i: #1ac3d6;
+  --j: #3557d6;
+  --l: #e88220;
+  --o: #e5c022;
+  --s: #42c451;
+  --t: #a349cf;
+  --z: #d63a4c;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+/* A column the height of the window, so the board below can be told how much room it has. */
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
+  /* A little light behind the board, so the page is not a flat sheet of near-black. */
+  /* One soft wash from above rather than lamps in the corners: two of those and the eye cannot
+     tell where the light is coming from, which is what made it feel feverish. */
+  background: linear-gradient(180deg, #171030 0%, var(--bg) 60%);
+  color: var(--text);
+  font: 400 13px / 1.45 var(--sans);
+  letter-spacing: 0.005em;
+}
+
+header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #1a1332;
+}
+
+header label,
+.panel label {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.file input {
+  display: none;
+}
+
+.file span,
+button {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  /* Before the weight, not after it: the shorthand resets every font longhand, so a weight set
+     above it is thrown away again. */
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    background 0.12s,
+    transform 0.06s;
+}
+
+.file span:hover,
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: #2b2048;
+}
+
+.file span:active,
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* The way in. Nothing else on the page matters until a replay is loaded. */
+.file span {
+  border-color: #5e40a0;
+  background: #2b1f4c;
+  color: #f0e4ff;
+}
+
+/* The small-caps belong to the labels beside the controls, not to what sits inside them. */
+.file span,
+select,
+input[type="number"] {
+  font-size: 13px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/*
+ * The key that does the same thing as the button it sits on. Centred by the box rather than by
+ * line height, and with a floor under its width, so a single letter sits square in it -- a
+ * thicker bottom border looks like a keycap but pushes the glyph off centre.
+ */
+kbd {
+  font-family: var(--mono);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 17px;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--sunken);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+button:hover:not(:disabled) kbd {
+  color: var(--text);
+}
+
+/* How to get a replay of your own, shown while there is nothing to play and gone once there is. */
+/* Clears the status, which is laid over the top of the stage rather than stacked above this. */
+#guide {
+  margin-top: 44px;
+  max-width: 46ch;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+#guide h3 {
+  margin: 0 0 8px;
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+#guide ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+#guide p {
+  margin: 10px 0 0;
+}
+
+#guide b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+#guide a {
+  color: var(--accent);
+}
+
+/* The keys, since nothing else says they exist: this is played with both hands on the keyboard. */
+#keys {
+  position: fixed;
+  right: 14px;
+  bottom: 10px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+#keys span {
+  margin-right: 10px;
+}
+
+#keys span:last-child {
+  margin-right: 0;
+}
+
+/* The display above is an id rule, which outranks the browser's own [hidden]; said again here so
+   that hiding the line actually hides it. */
+#keys[hidden] {
+  display: none;
+}
+
+/* The two ways in. The "or" between them is the whole of what had to be said; boxing them as
+   well only put a hole in the bar. */
+.source {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.or {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+input[type="range"] {
+  width: 120px;
+  accent-color: var(--accent);
+}
+
+#config {
+  margin-left: auto;
+  background: none;
+  color: var(--muted);
+}
+
+#config:hover {
+  color: var(--text);
+}
+
+#source {
+  display: inline-flex;
+  color: var(--muted);
+  transition: color 0.12s;
+}
+
+#source:hover {
+  color: var(--text);
+}
+
+/* The display above outranks the browser's own [hidden]. */
+#source[hidden] {
+  display: none;
+}
+
+select,
+input[type="number"] {
+  padding: 6px 10px;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--text);
+}
+
+select:hover {
+  border-color: var(--accent);
+}
+
+.cap input {
+  width: 60px;
+}
+
+main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* The middle track is what is left over, never what the canvas asks for: an auto track grows
+     with its content, and a canvas sized from the track it sits in would then chase itself. */
+  grid-template-columns: 220px minmax(0, 1fr) 34px;
+  gap: 16px;
+  align-items: start;
+  padding: 6px 16px;
+}
+
+/*
+ * What shapes the drill, kept at the edge of the eye rather than behind a dialog: tucked away it
+ * is forgotten, laid out in the open it crowds out the things one actually presses. The tab is
+ * always there; the panel comes out over the page rather than pushing it aside, since a board
+ * that slides whenever the pointer nears the edge is worse than a panel that overlaps it.
+ */
+#tools {
+  position: relative;
+  --tab: 108px;
+}
+
+/* A tab, not a spine: sideways text is read a letter at a time, which is no way to label a
+   thing meant to be noticed in passing. */
+.tab {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: var(--tab);
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+#tools:hover .tab,
+#tools:focus-within .tab {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.panel {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 190px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 10px 32px #06030ecc;
+  /* Reachable by tab as well as by pointer: the rest of the app is played without a mouse. */
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(6px);
+  transition:
+    opacity 0.12s,
+    transform 0.12s,
+    visibility 0.12s;
+}
+
+#tools:hover .panel,
+#tools:focus-within .panel {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+}
+
+/* The tab and the panel do not touch, and the gap belongs to neither, so the pointer on its way
+   down leaves both and the panel shuts under it. This bridges the two. */
+.panel::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  width: var(--tab);
+  height: 10px;
+}
+
+.panel label {
+  justify-content: space-between;
+}
+
+.panel input[type="number"] {
+  width: 68px;
+}
+
+/* The round and the intervals within it are one choice, made in one place. */
+aside {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 100%;
+  min-height: 0;
+}
+
+aside select {
+  width: 100%;
+}
+
+#segments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.segment {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 10px 6px 8px;
+  text-align: left;
+  /* Room for the marker the current one grows, so nothing shifts when it moves. */
+  border-left: 3px solid transparent;
+}
+
+.segment b {
+  color: var(--muted);
+  min-width: 2.5ch;
+  font-family: var(--mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.segment span {
+  color: var(--muted);
+}
+
+.segment.current {
+  border-color: var(--line);
+  border-left-color: var(--accent);
+  background: #2c2049;
+}
+
+.segment.current b,
+.segment.current span {
+  color: var(--text);
+}
+
+.segment.done {
+  border-left-color: var(--s);
+}
+
+.segment.done b {
+  color: var(--s);
+}
+
+.segment:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+#stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Says where the wheel has put the volume, and gets out of the way again. A bar on its own says
+   how much of something; the speaker beside it says of what. */
+#level {
+  position: absolute;
+  right: 0;
+  bottom: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+/* Two stops at the one point make the edge, so the fill needs no element of its own. The track is
+   lit rather than sunken, and its rim brighter than an ordinary line: how far along the fill stops
+   is the whole reading, and it can only be read against the empty part that follows it. */
+#level span {
+  width: 100px;
+  height: 8px;
+  border: 1px solid #5e40a0;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--filled, 0%), var(--raised) 0);
+}
+
+#level.show {
+  opacity: 1;
+  transition: opacity 0.08s;
+}
+
+/* The field labels beside it are already muted at body size, so colour alone left this reading as
+   one more row of the form rather than a footnote to it. */
+.note {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* The readout doubles as the notice while a file is read, so what hides it is having nothing to
+   say rather than a flag someone has to remember to set. */
+#altitude:empty {
+  display: none;
+}
+
+/* Beside the segment list rather than over the board: the canvas is sized from whatever the
+   middle column has left, so a row added there is a row taken off the board. */
+#run {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  margin: 0;
+}
+
+#run:empty {
+  display: none;
+}
+
+#run b {
+  font-weight: 600;
+}
+
+#run span {
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+#mods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+#mods:empty {
+  display: none;
+}
+
+#mods span {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+canvas {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px #06030e99;
+}
+
+/* The one piece of display type on the page, and the only thing that carries any colour. */
+#altitude {
+  margin: 0;
+  font-size: 30px;
+  font-family: var(--mono);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(180deg, #efe7ff, #a97fe4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+#altitude.busy {
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+}
+
+#altitude.busy {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--muted);
+  animation: breathe 1.1s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+#altitude .unit {
+  font-size: 0.5em;
+  color: var(--muted);
+  margin-left: 2px;
+}
+
+#altitude .ms {
+  font-size: 0.6em;
+  color: var(--muted);
+}
+
+/* A chip rather than loose text: it changes often, and a shape makes the change register. */
+/* Laid over the spawn rows rather than under the board. Those five rows hold a piece for a
+   moment at a time and nothing else, so the line costs the board no height at all. */
+#status {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  text-shadow: 0 1px 4px #000c;
+  pointer-events: none;
+  margin: 0;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+#status:not(:empty) {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: #ffffff0a;
+}
+
+#status.misplaced {
+  color: var(--z);
+  background: #d63a4c1f;
+}
+
+#status.finesse {
+  color: var(--l);
+  background: #e882201f;
+}
+
+#status.cleared {
+  color: var(--s);
+  background: #42c4511f;
+}
+
+dialog {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 20px;
+  min-width: 340px;
+  max-height: 85vh;
+}
+
+dialog::backdrop {
+  background: #0008;
+}
+
+/* A rule across the form is what makes the sections scannable; the heading on its own read as
+   one more label, being the same size and colour as the labels under it. */
+dialog h2 {
+  margin: 22px 0 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+dialog h2:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 3px 0;
+}
+
+.field > span {
+  color: var(--muted);
+}
+
+.field button {
+  min-width: 120px;
+}
+
+.field input[type="number"] {
+  width: 100px;
+}
+
+dialog form > button:last-child {
+  margin-top: 20px;
+}
