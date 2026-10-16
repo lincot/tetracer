@@ -6,7 +6,7 @@ import type { Mino, Rotation } from "@haelp/teto/engine";
  * step off the left edge. A 9 marks a placement the table does not reach.
  */
 // biome-ignore format: a table, one line per piece and one bracketed row per rotation
-const MINIMUM: Record<Mino, number[][]> = {
+const MINIMUM: Partial<Record<Mino, number[][]>> = {
   i: [[9, 9, 1, 2, 1, 0, 1, 2, 1, 9, 9], [2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 9], [9, 9, 1, 2, 1, 0, 1, 2, 1, 9, 9], [9, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2]],
   j: [[9, 9, 1, 2, 1, 0, 1, 2, 2, 1, 9], [9, 2, 2, 3, 2, 1, 2, 3, 3, 2, 9], [9, 9, 3, 4, 3, 2, 3, 4, 4, 3, 9], [9, 9, 2, 3, 2, 1, 2, 3, 3, 2, 2]],
   l: [[9, 9, 1, 2, 1, 0, 1, 2, 2, 1, 9], [9, 2, 2, 3, 2, 1, 2, 3, 3, 2, 9], [9, 9, 3, 4, 3, 2, 3, 4, 4, 3, 9], [9, 9, 2, 3, 2, 1, 2, 3, 3, 2, 2]],
@@ -14,7 +14,7 @@ const MINIMUM: Record<Mino, number[][]> = {
   s: [[9, 9, 1, 2, 1, 0, 1, 2, 2, 1, 9], [9, 2, 2, 2, 1, 1, 2, 3, 2, 2, 9], [9, 9, 1, 2, 1, 0, 1, 2, 2, 1, 9], [9, 9, 2, 2, 2, 1, 1, 2, 3, 2, 2]],
   t: [[9, 9, 1, 2, 1, 0, 1, 2, 2, 1, 9], [9, 2, 2, 3, 2, 1, 2, 3, 3, 2, 9], [9, 9, 3, 4, 3, 2, 3, 4, 4, 3, 9], [9, 9, 2, 3, 2, 1, 2, 3, 3, 2, 2]],
   z: [[9, 9, 1, 2, 1, 0, 1, 2, 2, 1, 9], [9, 2, 2, 2, 1, 1, 2, 3, 2, 2, 9], [9, 9, 1, 2, 1, 0, 1, 2, 2, 1, 9], [9, 9, 2, 2, 2, 1, 1, 2, 3, 2, 2]]
-} as unknown as Record<Mino, number[][]>;
+};
 
 export interface Attempt {
   piece: Mino;
@@ -32,7 +32,9 @@ export interface Attempt {
  * including its exemption for soft drops.
  */
 export const finesseFaults = ({ piece, rotation, column, keys, softDropped }: Attempt) => {
-  if (softDropped) return 0;
-  const minimum = MINIMUM[piece]?.[rotation]?.[column + 1] ?? 0;
-  return Math.max(0, keys - minimum);
+  const rows = MINIMUM[piece];
+  // Zenith's pentomino has no row of its own, and a piece the table cannot be read for is left
+  // unjudged rather than charged for every input -- the client reads the same table the same way.
+  if (softDropped || !rows) return 0;
+  return Math.max(0, keys - (rows[rotation]?.[column + 1] ?? 0));
 };

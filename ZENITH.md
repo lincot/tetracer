@@ -390,9 +390,30 @@ for (let e = 0; n.isPlaying() && e <= h; e++)
 The client steps every frame of the run through the real engine and keeps every three-hundredth. The
 whole reconstruction exists to guess at what it threw away, and the interval is one literal that
 occurs exactly once in the bundle. `public/tetrio-dump.user.js` rewrites it as the script text is
-handed to `new Blob`, before the browser runs it, so the client keeps a state every 30 frames
+handed to `new Blob`, before the browser runs it, so the client keeps a state every 10 frames
 instead. That is the only place any of these scripts changes the client rather than watching it.
 
 What a failing window still gives up is all of it bar its opening, and that is deliberate. The
 alternative was an agreement test that looked like it recovered six times as much and was quietly
 wrong about some of it.
+
+## The piece that locks under another name
+
+The bag above hands out an `i5` the first time the cancel streak reaches 40 -- once a run, and
+never again. Of every run captured so far one has one: 5han's 2041m climb under `volatile_reversed`,
+piece 798 of 846, stood on end in the second column on floor 10. Triangle.js has the pentomino,
+kicks and all, and lays it exactly where the client did.
+
+Where the two part is the name it leaves behind. The client colours pieces through
+`tetrominoes_color`, which maps `i5` to `i` as it does every other piece outside the seven, so what
+it writes into the board is five plain `i` cells; Triangle.js writes the piece's own symbol. The
+window the pentomino locks in then differs from its anchor in those five cells and nothing else,
+and a window that misses its anchor is dropped whole -- so the one piece a run is given once was
+the one piece the trainer could never show. Reading the two names as the same mino on the board is
+the whole of the fix, and that run comes back whole with it: 846 placements of 846.
+
+Two smaller things follow from the same table. The pentomino is cyan, being coloured as an I, and
+the trainer draws the falling piece and its preview that way rather than in the grey it keeps for a
+mino it does not know. And finesse passes over it: the client's table carries a row per tetromino
+and none for the pentomino, and `_InternalFinesse` charges nothing for a piece it cannot look up,
+where the trainer had been charging every input it took.

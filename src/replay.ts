@@ -731,11 +731,18 @@ const without = (board: Tile[][], cells: [number, number][]): Tile[][] => {
 const garbageRows = (board: Tile[][]) =>
   board.filter((row) => row.some((cell) => String(cell?.mino) === "gb") && !isWound(row)).length;
 
+/**
+ * What a cell holds, as TETR.IO names it. The pentomino is the one piece whose blocks the client
+ * writes under another name: they lock as plain `i`, the colour it is drawn in, where Triangle.js
+ * keeps the piece's own symbol. Told apart, every window a pentomino locks in fails its anchor.
+ */
+const minoOf = (tile: Tile) => (String(tile?.mino) === "i5" ? "i" : tile?.mino);
+
 /** Whether two boards hold the same minos in the same cells. */
 const sameBoard = (a: Tile[][], b: Tile[][]) => {
   if (a.length !== b.length) return false;
   for (let y = 0; y < a.length; y++)
-    for (let x = 0; x < a[y].length; x++) if (a[y][x]?.mino !== b[y][x]?.mino) return false;
+    for (let x = 0; x < a[y].length; x++) if (minoOf(a[y][x]) !== minoOf(b[y][x])) return false;
   return true;
 };
 

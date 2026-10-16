@@ -72,6 +72,8 @@ export const createRenderer = (canvas: HTMLCanvasElement) => {
 
 export const colors: Record<string, string> = {
   i: "#1ac3d6",
+  // Zenith's pentomino, which the client lays down as plain `i` once it locks.
+  i5: "#1ac3d6",
   j: "#3557d6",
   l: "#e88220",
   o: "#e5c022",
