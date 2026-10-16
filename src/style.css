@@ -707,3 +707,39 @@ dialog h2:first-of-type {
 dialog form > button:last-child {
   margin-top: 20px;
 }
+
+/*
+ * Touch devices get this line and nothing else. DAS and ARR decide where a piece lands and finesse
+ * counts the inputs that put it there, so there is no touch control to offer that would mean
+ * anything -- and a layout built around a keyboard, shown on a phone, reads as a broken page
+ * rather than as one that is not for this device.
+ */
+#touch {
+  display: none;
+  margin: auto;
+  padding: 0 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+#touch p {
+  margin: 0;
+}
+
+/* The mark the tab carries, at a size that gives the page something to hold. */
+#touch svg {
+  margin-top: 28px;
+  color: var(--t);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  header,
+  main,
+  #keys {
+    display: none;
+  }
+
+  #touch {
+    display: block;
+  }
+}
