@@ -81,6 +81,9 @@ export const colors: Record<string, string> = {
   t: "#a349cf",
   z: "#d63a4c",
   gb: "#635a7d",
+  // Zenith's penalty line, the garbage no clear takes away. Violet rather than grey, which is how
+  // the client tells it apart, lifted off its near-black so that it reads against the well.
+  gbd: "#4a2c6b",
   bomb: "#ff9500"
 };
 
