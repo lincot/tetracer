@@ -113,8 +113,10 @@ function drawKeys() {
         [settings.pause, "pause"],
         [settings.restart, "restart"]
       ] as const
-    ).flatMap(([code, what]) => [
-      Object.assign(document.createElement("kbd"), { textContent: bindLabel(code) }),
+    ).flatMap(([codes, what]) => [
+      ...codes.map((code) =>
+        Object.assign(document.createElement("kbd"), { textContent: bindLabel(code) })
+      ),
       Object.assign(document.createElement("span"), { textContent: what })
     ])
   );
@@ -305,14 +307,14 @@ configButton.addEventListener("click", () => {
 
 addEventListener("keydown", (event) => {
   if (dialog.open) return;
-  if (event.code === settings.pause) {
+  if (settings.pause.includes(event.code)) {
     event.preventDefault();
     return setPaused(!held);
   }
   // Nothing but unpausing gets through while play is held, and the release of a key pressed
   // before it still does -- see the keyup handler.
   if (held) return;
-  if (event.code === settings.restart) {
+  if (settings.restart.includes(event.code)) {
     event.preventDefault();
     // Mid-demo there is nothing to restart yet, so it means the same as any other piece key: skip
     // the watching and start the turn.
@@ -320,13 +322,13 @@ addEventListener("keydown", (event) => {
     session.restart();
     return say(turnLine(0));
   }
-  if (event.code === settings.replay && segments.length) {
+  if (settings.replay.includes(event.code) && segments.length) {
     event.preventDefault();
     return show();
   }
   // Reaching for a piece key during the demo means you already know this one: cut it short and hand
   // over rather than swallowing the press.
-  if (!session && show_ && actions.some((a) => settings.binds[a] === event.code)) {
+  if (!session && show_ && actions.some((a) => settings.binds[a].includes(event.code))) {
     event.preventDefault();
     skipped = event.code;
     return play();
@@ -620,7 +622,10 @@ function openSettings() {
     form.append(field(label, select));
   }
 
-  form.insertAdjacentHTML("beforeend", "<h2>Keys</h2>");
+  form.insertAdjacentHTML(
+    "beforeend",
+    '<h2>Keys</h2><p class="note">Two keys to a control; Escape clears the one being set.</p>'
+  );
   for (const action of [...actions, ...controls]) form.append(field(action, rebinder(action)));
   // Last, under the three it is about: the piece keys above it are not the ones shown.
   form.append(
@@ -669,24 +674,40 @@ function input(
 const isControl = (action: Action | Control): action is Control =>
   (controls as string[]).includes(action);
 
+const bindsOf = (action: Action | Control) =>
+  isControl(action) ? settings[action] : settings.binds[action];
+
+/** A button for each key a control may answer to: the ones it has, and the one it may be given. */
 function rebinder(action: Action | Control) {
-  const button = document.createElement("button");
-  button.type = "button";
+  const pair = document.createElement("span");
+  pair.className = "binds";
+  const buttons = [0, 1].map(() =>
+    Object.assign(document.createElement("button"), { type: "button" })
+  );
   const read = () =>
-    (button.textContent = bindLabel(isControl(action) ? settings[action] : settings.binds[action]));
+    buttons.forEach((button, slot) => {
+      const code = bindsOf(action)[slot];
+      button.textContent = code ? bindLabel(code) : "—";
+    });
+  for (const [slot, button] of buttons.entries())
+    button.addEventListener("click", () => {
+      button.textContent = "press a key…";
+      addEventListener(
+        "keydown",
+        (event) => {
+          event.preventDefault();
+          const keys = bindsOf(action);
+          // Escape is how a slot is given up: bound to one, there would be no way back out of it.
+          if (event.code === "Escape") keys.splice(slot, 1);
+          // Appended rather than written past the end, so that clearing the first key moves the
+          // second up into it instead of leaving a hole.
+          else keys[Math.min(slot, keys.length)] = event.code;
+          read();
+        },
+        { once: true, capture: true }
+      );
+    });
   read();
-  button.addEventListener("click", () => {
-    button.textContent = "press a key…";
-    addEventListener(
-      "keydown",
-      (event) => {
-        event.preventDefault();
-        if (isControl(action)) settings[action] = event.code;
-        else settings.binds[action] = event.code;
-        read();
-      },
-      { once: true, capture: true }
-    );
-  });
-  return button;
+  pair.append(...buttons);
+  return pair;
 }

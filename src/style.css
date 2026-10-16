@@ -700,6 +700,22 @@ dialog h2:first-of-type {
   min-width: 120px;
 }
 
+/* Two keys to a control, in the width one key had. */
+.binds {
+  display: flex;
+  gap: 6px;
+}
+
+.binds button {
+  min-width: 57px;
+}
+
+.note {
+  margin: -6px 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 .field input[type="number"] {
   width: 100px;
 }

@@ -72,7 +72,9 @@ export class Session {
     this.#segment = segment;
     this.#settings = settings;
     this.#handlers = handlers;
-    this.#binds = new Map(actions.map((a) => [settings.binds[a], a]));
+    this.#binds = new Map(
+      actions.flatMap((a) => settings.binds[a].map((code) => [code, a] as const))
+    );
     this.#engine = createEngine(round.options, settings.handling);
     const g = this.#engine.dynamic.gravity;
     this.#fall = { base: g.base, increase: g.increase, margin: g.margin };

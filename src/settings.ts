@@ -12,10 +12,11 @@ export type Action =
 
 export interface Settings {
   handling: Game.Handling;
-  binds: Record<Action, string>;
-  restart: string;
-  replay: string;
-  pause: string;
+  /** The keys each action answers to, at most two, in the order the settings show them. */
+  binds: Record<Action, string[]>;
+  restart: string[];
+  replay: string[];
+  pause: string[];
   ghosts: boolean;
   /** Let pieces fall on their own. Off, a piece waits where it is until you take it down. */
   gravity: boolean;
@@ -85,19 +86,20 @@ const defaults: Settings = {
     irs: "tap",
     ihs: "tap"
   },
+  // TETR.IO's own guideline binds, cut to the two keys of each that a keyboard player reaches for.
   binds: {
-    moveLeft: "ArrowLeft",
-    moveRight: "ArrowRight",
-    softDrop: "ArrowDown",
-    hardDrop: "Space",
-    rotateCW: "ArrowUp",
-    rotateCCW: "KeyZ",
-    rotate180: "KeyA",
-    hold: "ShiftLeft"
+    moveLeft: ["ArrowLeft", "Numpad4"],
+    moveRight: ["ArrowRight", "Numpad6"],
+    softDrop: ["ArrowDown", "Numpad2"],
+    hardDrop: ["Space", "Numpad8"],
+    rotateCW: ["ArrowUp", "KeyX"],
+    rotateCCW: ["KeyZ", "ControlLeft"],
+    rotate180: ["KeyA"],
+    hold: ["ShiftLeft", "Numpad0"]
   },
-  restart: "KeyR",
-  replay: "KeyD",
-  pause: "KeyP",
+  restart: ["KeyR"],
+  replay: ["KeyD"],
+  pause: ["KeyP"],
   ghosts: true,
   gravity: true,
   keyHints: true,
@@ -116,20 +118,44 @@ export const settings: Settings = read();
 
 export const save = () => localStorage.setItem(storageKey, JSON.stringify(settings));
 
+/**
+ * A key as the settings and the hint line spell it, short enough to sit on a button beside its
+ * pair: the client's own shorthand, where a numpad key is a Num and a side is the letter in front.
+ */
 export const bindLabel = (code: string) =>
   code
     .replace(/^Key|^Digit/, "")
     .replace(/^Arrow/, "")
-    .replace(/([a-z])([A-Z])/g, "$1 $2");
+    .replace(/^Numpad/, "Num ")
+    .replace(/^Control/, "Ctrl")
+    .replace(/^(\D+)(Left|Right)$/, (_, key, side) => `${side[0]} ${key}`)
+    .replace(/([a-z])([A-Z0-9])/g, "$1 $2");
+
+/** What is in storage, where a control saved before it could hold two keys holds one. */
+type Saved = Partial<Omit<Settings, "binds" | "restart" | "replay" | "pause">> & {
+  binds?: Partial<Record<Action, string | string[]>>;
+  restart?: string | string[];
+  replay?: string | string[];
+  pause?: string | string[];
+};
 
 function read(): Settings {
   const stored = localStorage.getItem(storageKey);
   if (!stored) return structuredClone(defaults);
-  const saved = JSON.parse(stored) as Partial<Settings>;
+  const saved = JSON.parse(stored) as Saved;
+  const binds = { ...defaults.binds };
+  for (const action of actions) binds[action] = bound(saved.binds?.[action], binds[action]);
   return {
     ...defaults,
     ...saved,
     handling: { ...defaults.handling, ...saved.handling },
-    binds: { ...defaults.binds, ...saved.binds }
+    binds,
+    restart: bound(saved.restart, defaults.restart),
+    replay: bound(saved.replay, defaults.replay),
+    pause: bound(saved.pause, defaults.pause)
   };
+}
+
+function bound(saved: string | string[] | undefined, fallback: string[]) {
+  return saved === undefined ? fallback : typeof saved === "string" ? [saved] : saved;
 }
