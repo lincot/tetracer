@@ -21,6 +21,7 @@ const perPiece = beats.ghost + beats.solid;
 export const runShow = (
   ref: Placement[],
   segment: Segment,
+  height: number,
   render: (view: View) => void,
   done: () => void
 ) => {
@@ -48,7 +49,7 @@ export const runShow = (
       }
       until = now + duration(stage);
     }
-    render(view(ref[index], stage));
+    render(view(ref[index], stage, height));
     raf = requestAnimationFrame(frame);
   };
 
@@ -84,10 +85,11 @@ const opening = (placement: Placement): Stage => (placement.spinFrom ? "turn" : 
 
 const duration = (stage: Stage) => (beats[stage] * 1000) / settings.demoPps / perPiece;
 
-const view = (placement: Placement, stage: Stage): View =>
+const view = (placement: Placement, stage: Stage, height: number): View =>
   stage !== "solid"
     ? {
         board: placement.before,
+        height,
         hold: placement.hold,
         queue: placement.queue,
         ghost: {
@@ -97,6 +99,7 @@ const view = (placement: Placement, stage: Stage): View =>
       }
     : {
         board: placement.board,
+        height,
         hold: placement.hold,
         queue: placement.queue,
         tint: placement.spin === "none" ? undefined : "pass"

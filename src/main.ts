@@ -2,6 +2,7 @@ import "./style.css";
 import { type Anchor, parseCaptures } from "./anchors";
 import { createRenderer } from "./render";
 import {
+  fieldHeight,
   type Placement,
   pairDumps,
   parseRounds,
@@ -438,7 +439,7 @@ function show() {
   warm();
   drawAltitude();
   say("watch");
-  show_ = runShow(placements, segments[current], render, play);
+  show_ = runShow(placements, segments[current], fieldHeight(round!.options), render, play);
 }
 
 function play() {

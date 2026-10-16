@@ -2,6 +2,8 @@ import { type Mino, type Tile, tetrominoes } from "@haelp/teto/engine";
 
 export interface View {
   board: Tile[][];
+  /** Rows of playfield under the spawn room: twenty, or the fourteen Zenith's reversed mod sets. */
+  height: number;
   hold: Mino | null;
   queue: Mino[];
   piece?: { mino: Mino; cells: [number, number][] };
@@ -12,15 +14,13 @@ export interface View {
 
 const cell = 26;
 /**
- * The playfield proper and the room over it. TETR.IO shows about five rows above the twenty
- * while you play -- its own window flexes with the viewport, ours does not, so this takes the
+ * The room over the playfield, however tall the run's own is. TETR.IO shows about five rows above
+ * it while you play -- its own window flexes with the viewport, ours does not, so this takes the
  * figure from playing it. Fixed, because a board that resizes under your hands is worse than one
- * that hides what the game hides too: of 14882 recorded placements, five rows leave seven with
- * anything cut off at all.
+ * that hides what the game hides too: of 20570 recorded placements across eleven runs, five rows
+ * leave ten with anything cut off at all.
  */
-const field = 20;
 const spawnRoom = 5;
-const rows = field + spawnRoom;
 const panel = 5 * cell;
 const previews = 5;
 
@@ -33,6 +33,7 @@ export const createRenderer = (canvas: HTMLCanvasElement) => {
   const draw = (view: View) => {
     last = view;
     const cols = view.board[0]?.length ?? 10;
+    const rows = view.height + spawnRoom;
     resize(canvas, ctx, panel * 2 + cols * cell, rows * cell);
 
     ctx.fillStyle = "#0c0716";
@@ -40,17 +41,17 @@ export const createRenderer = (canvas: HTMLCanvasElement) => {
 
     ctx.save();
     ctx.translate(panel, 0);
-    drawWell(ctx, cols);
+    drawWell(ctx, cols, rows);
     for (let y = 0; y < rows; y++)
       for (let x = 0; x < cols; x++) {
         const tile = view.board[y]?.[x];
-        if (tile) block(ctx, x, screenY(y), colors[tile.mino] ?? "#888", 1);
+        if (tile) block(ctx, x, screenY(y, rows), colors[tile.mino] ?? "#888", 1);
       }
-    for (const [x, y] of view.shadow ?? []) block(ctx, x, screenY(y), "#ffffff", 0.12);
-    if (view.ghost) outline(ctx, view.ghost.cells, colors[view.ghost.mino] ?? "#888");
+    for (const [x, y] of view.shadow ?? []) block(ctx, x, screenY(y, rows), "#ffffff", 0.12);
+    if (view.ghost) outline(ctx, view.ghost.cells, colors[view.ghost.mino] ?? "#888", rows);
     if (view.piece)
       for (const [x, y] of view.piece.cells)
-        block(ctx, x, screenY(y), colors[view.piece.mino] ?? "#888", 1);
+        block(ctx, x, screenY(y, rows), colors[view.piece.mino] ?? "#888", 1);
     if (view.tint) {
       ctx.fillStyle =
         view.tint === "misplaced"
@@ -128,9 +129,9 @@ const room = (canvas: HTMLCanvasElement) => {
   return { width: stage.clientWidth, height: stage.clientHeight - taken };
 };
 
-const screenY = (y: number) => rows - 1 - y;
+const screenY = (y: number, rows: number) => rows - 1 - y;
 
-const drawWell = (ctx: CanvasRenderingContext2D, cols: number) => {
+const drawWell = (ctx: CanvasRenderingContext2D, cols: number, rows: number) => {
   ctx.fillStyle = "#1b1233";
   ctx.fillRect(0, 0, cols * cell, rows * cell);
   // The spawn rows sit above the playfield proper.
@@ -167,7 +168,12 @@ const block = (
   ctx.globalAlpha = 1;
 };
 
-const outline = (ctx: CanvasRenderingContext2D, cells: [number, number][], color: string) => {
+const outline = (
+  ctx: CanvasRenderingContext2D,
+  cells: [number, number][],
+  color: string,
+  rows: number
+) => {
   ctx.save();
   ctx.strokeStyle = color;
   ctx.fillStyle = color;
@@ -175,9 +181,9 @@ const outline = (ctx: CanvasRenderingContext2D, cells: [number, number][], color
   ctx.setLineDash([4, 3]);
   for (const [x, y] of cells) {
     ctx.globalAlpha = 0.18;
-    ctx.fillRect(x * cell, screenY(y) * cell, cell - 1, cell - 1);
+    ctx.fillRect(x * cell, screenY(y, rows) * cell, cell - 1, cell - 1);
     ctx.globalAlpha = 0.95;
-    ctx.strokeRect(x * cell + 1, screenY(y) * cell + 1, cell - 3, cell - 3);
+    ctx.strokeRect(x * cell + 1, screenY(y, rows) * cell + 1, cell - 3, cell - 3);
   }
   ctx.restore();
 };

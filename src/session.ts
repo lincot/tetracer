@@ -374,6 +374,7 @@ export class Session {
     const target = this.#outstanding()[0];
     return {
       board: this.#engine.board.state,
+      height: this.#engine.board.height,
       hold: this.#engine.held,
       queue: this.#engine.queue.slice(0, 5),
       piece: {

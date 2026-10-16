@@ -995,6 +995,9 @@ export const spinLabel = ({ piece, spin, lines }: Placement) =>
  * Single-player replays only store the options that differ from TETR.IO's defaults, so every
  * fallback here has to be that default rather than a Tetra League value.
  */
+/** Rows of playfield a run is played on: twenty, or the fourteen Zenith's reversed mod sets. */
+export const fieldHeight = (options: ReplayOptions) => options.boardheight ?? 20;
+
 export const createEngine = (
   options: ReplayOptions,
   handling: Game.Handling = options.handling ?? defaultHandling
@@ -1012,7 +1015,7 @@ export const createEngine = (
   const engine = new Engine({
     board: {
       width: options.boardwidth ?? 10,
-      height: options.boardheight ?? 20,
+      height: fieldHeight(options),
       buffer: options.boardbuffer ?? 20
     },
     kickTable: kickset,
