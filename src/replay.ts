@@ -559,6 +559,19 @@ const protectWounds = (engine: Engine) => {
 };
 
 /**
+ * The Warlock (`allspin_reversed`) pays a back-to-back for a spin that clears nothing, once the
+ * charge bar is up -- `!lines && spin && btb > b2bcharge_at` in the client's own clear handler,
+ * where `btb` counts one higher than Triangle.js's `b2b`. Triangle.js has no such rule, so the
+ * window a bare spin locks in ends a back-to-back short of its anchor and is dropped whole: six of
+ * the 537 placements of the run this was found on.
+ */
+const creditBareSpins = (engine: Engine, at: number) => {
+  engine.events.on("falling.lock", ({ lines, spin }) => {
+    if (!lines && spin !== "none" && engine.stats.b2b + 1 > at) engine.stats.b2b++;
+  });
+};
+
+/**
  * Zenith sets `garbageentry: "continuous"`. A lock still decides *which* rows come -- that is where
  * their hole is picked and where they stop being cancellable -- but they then rise into the well one
  * every `garbageare` frames instead of in a lump, so they land under a piece that is already falling
@@ -1099,6 +1112,8 @@ export const createEngine = (
     handling
   });
   protectWounds(engine);
+  if (options.zenith_mods?.[0] === "allspin_reversed")
+    creditBareSpins(engine, options.b2bcharge_at ?? 4);
   return engine;
 };
 

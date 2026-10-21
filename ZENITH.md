@@ -417,3 +417,30 @@ the trainer draws the falling piece and its preview that way rather than in the 
 mino it does not know. And finesse passes over it: the client's table carries a row per tetromino
 and none for the pentomino, and `_InternalFinesse` charges nothing for a piece it cannot look up,
 where the trainer had been charging every input it took.
+
+## The Warlock pays for a spin that clears nothing
+
+`allspin_reversed` -- "The Warlock" in the client's own table of mods -- rewrites what a clear is
+worth, and one of its two rules moves a counter the windows are checked against:
+
+```js
+const spin = IsSpin();                       // set for a mini too, which carries both flags
+if (zenith_mods[0] === "allspin_reversed") {
+  if (lines && !spin) lines = 1;             // a clear without a spin is worth one line
+  if (!lines && spin && stats.btb > setoptions.b2bcharge_at) b2bGain++;   // a spin without a clear
+}                                            // is worth a back-to-back, once the bar is up
+```
+
+Triangle.js has neither rule. The second one cost inkly's 2292m run six of its 537 placements.
+Seven pieces in it are spun into place and clear nothing; six of those find the bar already up,
+`b2bcharge_at` being 4 and the counter standing at 25, 12, 11, 30, 34 and 6, while the seventh
+finds it at 1 and earns nothing. Each of the six ends its window with the board, the piece and line
+counts, the combo, the hold and the queue all landing on the anchor and the back-to-back one short
+-- which is enough to throw the window away whole. Crediting the lock the way the client does
+brings the run back entire, and leaves every other run in the corpus at the placement.
+
+The first rule is left unmodelled. It changes what a clear *sends*, not what it clears, so it can
+only reach an anchor through garbage that a window's attack would have cancelled, and the three
+non-spin doubles in the run it would rewrite sit in windows that reproduce without it. The same
+clause also means a quad with no spin pays no back-to-back under this mod; nothing in the corpus
+has one.
