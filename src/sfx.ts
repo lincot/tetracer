@@ -11,6 +11,12 @@ export const sfx = (sound: Sound) => play(sounds[sound]);
 export const clearSfx = (lines: number, spin: boolean) => play(clear(lines, spin));
 
 /**
+ * A tap on a piece, answered a rung higher each time it repeats: the ladder of fourths a clear
+ * climbs, walked from the bottom, so how far a run of them has got is heard rather than counted.
+ */
+export const tapSfx = (step: number) => play(tap(step));
+
+/**
  * Opens the audio device before there is anything to play. The stream pops as it opens, the way a
  * sound card does when a jack goes in, and building the context lazily puts that pop underneath the
  * first cue instead of under silence.
@@ -31,7 +37,7 @@ export const setVolume = (level: number) => {
 let volume = 1;
 
 /** Cues are named for what happened, not for how they sound. */
-type Sound = "lock" | "twist" | "spin" | "finesse" | "misplaced" | "cleared" | "complete";
+type Sound = "lock" | "twist" | "spin" | "finesse" | "misplaced" | "cleared" | "complete" | "swept";
 
 interface Layer {
   hz: number;
@@ -160,9 +166,29 @@ const clear = (lines: number, spin: boolean): Layer[] => {
   return [...climb.flat(), weight(notes)];
 };
 
+/** Harder, brighter and longer the further up it is: a climb the ear counts without being told. */
+const tap = (step: number): Layer[] =>
+  struck(rung(step - 1), ring * (0.4 + step * 0.2), 0.07 + step * 0.015);
+
 // Heard several times a second where every other cue is occasional, so it is mixed well under
 // them: at a shared level a cue this frequent stops being feedback and becomes a drumbeat.
 const lock = struck(rung(-1), ring / 2, 0.08);
+
+/**
+ * A well filled to the ceiling and swept for it. Struck, not glided: a cue that slides down reads
+ * as a joke however it is tuned. One landing heavier than any real one, and two light things
+ * coming to rest after it -- the stack going over and the last of it settling. The notes over it
+ * are the octave and the twelfth, not an interval with an opinion: the well is simply gone, and a
+ * cue that is sour about it is a verdict on a board that keeps no score. Several low strikes in a
+ * row, which is where this started, blur into one another and come out as a raspberry; there is
+ * one here, and the rest is light.
+ */
+const swept: Layer[] = [
+  ...struck(rung(-1), ring * 1.2, 0.09),
+  weight(0),
+  ...struck(rung(-1) * 2, ring * 0.5, 0.03, 0.04),
+  ...struck(rung(-1) * 3, ring * 0.4, 0.02, 0.07)
+];
 
 const sounds: Record<Sound, Layer[]> = {
   lock,
@@ -179,7 +205,8 @@ const sounds: Record<Sound, Layer[]> = {
   misplaced: [{ hz: root / 2, to: root / 4, secs: ring * 2, gain: 0.14, send: stone.tail }],
   cleared: arrival(ring * 1.6, [0.075, 0.07, 0.065]),
   // The same arrival opened one note wider and held longer, for the end of a whole run.
-  complete: arrival(ring * 2.4, [0.085, 0.08, 0.075, 0.06])
+  complete: arrival(ring * 2.4, [0.085, 0.08, 0.075, 0.06]),
+  swept
 };
 
 interface Engine {

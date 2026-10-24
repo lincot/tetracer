@@ -1,5 +1,7 @@
 import "./style.css";
+import type { Mino } from "@haelp/teto/engine";
 import { type Anchor, parseCaptures } from "./anchors";
+import { type Mono, runMono } from "./mono";
 import { createRenderer } from "./render";
 import {
   fieldHeight,
@@ -25,7 +27,7 @@ import {
   save,
   settings
 } from "./settings";
-import { setVolume, sfx, warm } from "./sfx";
+import { setVolume, sfx, tapSfx, warm } from "./sfx";
 import { runShow, type Show } from "./show";
 
 const el = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -75,7 +77,7 @@ dialog.addEventListener("click", (event) => {
 });
 
 const board = el<HTMLCanvasElement>("board");
-const render = createRenderer(board);
+const { draw: render, pick } = createRenderer(board);
 
 let rounds: Round[] = [];
 let dumps: Anchor[][] = [];
@@ -92,6 +94,7 @@ const cleared = new Set<number>();
 let trimmed = 0;
 let session: Session | null = null;
 let show_: Show | null = null;
+let mono_: Mono | null = null;
 /** What the status bar was saying before the pause, to be put back when play resumes. */
 let held: { text: string; tone: string } | null = null;
 /** Key that skipped a demo, held until its release so the turn does not inherit a stray keyup. */
@@ -305,8 +308,38 @@ configButton.addEventListener("click", () => {
   openSettings();
 });
 
+/**
+ * The egg: four clicks running on the same piece, in hold or anywhere in the queue, and the board
+ * is given over to that piece and nothing else. Hidden rather than offered, because it is not what
+ * the trainer is for -- but a queue you can point at is an invitation, and this is behind it.
+ */
+let streak: Mino | null = null;
+let hits = 0;
+board.addEventListener("click", (event) => {
+  const mino = pick(event);
+  hits = mino && mino === streak ? hits + 1 : 1;
+  streak = mino;
+  if (!mino) return;
+  // The fourth tap is not answered by the ladder: the flood it opens is the far bigger sound, and
+  // the two land on the same instant.
+  if (hits < 4) return tapSfx(hits);
+  if (!round) return;
+  // Spent, rather than left standing at four: every further click on the piece would otherwise
+  // open the well again, and in there the whole queue is the piece.
+  hits = 0;
+  stop();
+  say(`${mino.toUpperCase()} forever — esc to leave`);
+  mono_ = runMono(mino, round.options, settings, render);
+});
+
 addEventListener("keydown", (event) => {
   if (dialog.open) return;
+  // The egg hears its own keys and nothing else: the trainer's three would restart, replay or
+  // pause a drill that is not the one being played.
+  if (mono_) {
+    if (event.code === "Escape") return show();
+    return mono_.keydown(event);
+  }
   if (settings.pause.includes(event.code)) {
     event.preventDefault();
     return setPaused(!held);
@@ -340,6 +373,7 @@ addEventListener("keydown", (event) => {
 });
 addEventListener("keyup", (event) => {
   if (dialog.open) return;
+  if (mono_) return mono_.keyup(event);
   // The release of the key that cut the demo short belongs to the demo, not to the turn it started.
   if (event.code === skipped) {
     skipped = null;
@@ -509,6 +543,8 @@ function stop() {
   show_ = null;
   session?.stop();
   session = null;
+  mono_?.stop();
+  mono_ = null;
 }
 
 function drawSegmentList() {

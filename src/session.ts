@@ -1,6 +1,6 @@
 import { deepCopy, type Engine, legal, type Tile, tetrominoes } from "@haelp/teto/engine";
-import type { Game } from "@haelp/teto/types";
 import { finesseFaults } from "./finesse";
+import { frameMs, type Keyboard, keyboard, viewOf } from "./live";
 import type { View } from "./render";
 import {
   cellKey,
@@ -11,13 +11,12 @@ import {
   type Segment,
   stackedOnto
 } from "./replay";
-import { type Action, actions, type Settings } from "./settings";
+import type { Settings } from "./settings";
 import { clearSfx, sfx } from "./sfx";
 
 /** `ACTION_SOFTDROP`, which the engine sets on a piece the player guided down. */
 const SOFT_DROPPED = 4096;
 
-const frameMs = 1000 / 60;
 const tintMs = 260;
 
 /**
@@ -40,7 +39,7 @@ export class Session {
   #segment: Segment;
   #settings: Settings;
   #handlers: SessionHandlers;
-  #binds: Map<string, Action>;
+  #keys: Keyboard;
 
   #placed = 0;
   #verdict: "pass" | { fault: Fault; got: string; want: string } | null = null;
@@ -55,8 +54,6 @@ export class Session {
   #risen = 0;
   /** Frame the first piece of the turn landed on, from which the pace of the rest is counted. */
   #rolling = -1;
-  #queued: { type: "keydown" | "keyup"; key: Game.Key; at: number }[] = [];
-  #down = new Set<Action>();
   #frameStart = 0;
   #tintUntil = 0;
   #raf = 0;
@@ -72,9 +69,7 @@ export class Session {
     this.#segment = segment;
     this.#settings = settings;
     this.#handlers = handlers;
-    this.#binds = new Map(
-      actions.flatMap((a) => settings.binds[a].map((code) => [code, a] as const))
-    );
+    this.#keys = keyboard(settings);
     this.#engine = createEngine(round.options, settings.handling);
     const g = this.#engine.dynamic.gravity;
     this.#fall = { base: g.base, increase: g.increase, margin: g.margin };
@@ -116,8 +111,7 @@ export class Session {
     this.#filled.clear();
     this.#placed = 0;
     this.#verdict = null;
-    this.#queued.length = 0;
-    this.#down.clear();
+    this.#keys.clear();
     this.#engine.fromSnapshot(deepCopy(this.#ref[this.#segment.start].start));
     this.#gravity();
     this.#engine.input = neutral();
@@ -165,24 +159,11 @@ export class Session {
   }
 
   keydown(event: KeyboardEvent) {
-    this.#press("keydown", event);
+    this.#keys.press("keydown", event);
   }
 
   keyup(event: KeyboardEvent) {
-    this.#press("keyup", event);
-  }
-
-  #press(type: "keydown" | "keyup", event: KeyboardEvent) {
-    const key = this.#binds.get(event.code);
-    if (!key) return;
-    event.preventDefault();
-    if (type === "keyup") this.#down.delete(key);
-    else {
-      // The OS repeats a held key; the engine wants the press once and tracks the hold itself.
-      if (event.repeat || this.#down.has(key)) return;
-      this.#down.add(key);
-    }
-    this.#queued.push({ type, key, at: event.timeStamp || performance.now() });
+    this.#keys.press("keyup", event);
   }
 
   #tick = (now: number) => {
@@ -192,7 +173,7 @@ export class Session {
 
     while (now - this.#frameStart >= frameMs) {
       const end = this.#frameStart + frameMs;
-      this.#engine.tick(this.#drain(end));
+      this.#engine.tick(this.#keys.drain(this.#engine.frame, this.#frameStart));
       // There is no rotation event to hook, so the count of them stands in: it rises only in the
       // engine's rotate branch, which makes every turn audible and not merely the one that first
       // reached a spin. A fall zeroes the count along with the spin itself, so a change back down
@@ -219,19 +200,6 @@ export class Session {
 
     this.#handlers.render(this.#view());
   };
-
-  #drain(until: number): Game.Replay.Frame[] {
-    const frames: Game.Replay.Frame[] = [];
-    while (this.#queued.length && this.#queued[0].at < until) {
-      const { type, key, at } = this.#queued.shift()!;
-      frames.push({
-        type,
-        frame: this.#engine.frame,
-        data: { key, subframe: subframeOf(at - this.#frameStart) }
-      });
-    }
-    return frames;
-  }
 
   /**
    * Runs while the locked piece is still `engine.falling`, so the board can be re-synced to the
@@ -375,15 +343,7 @@ export class Session {
   #view(): View {
     const target = this.#outstanding()[0];
     return {
-      board: this.#engine.board.state,
-      height: this.#engine.board.height,
-      hold: this.#engine.held,
-      queue: this.#engine.queue.slice(0, 5),
-      piece: {
-        mino: this.#engine.falling.symbol,
-        cells: this.#engine.falling.absoluteBlocks
-      },
-      shadow: shadow(this.#engine),
+      ...viewOf(this.#engine),
       ghost:
         this.#settings.ghosts && target ? { mino: target.piece, cells: target.cells } : undefined,
       // Too slow is the same class of fault as poor finesse -- the piece went where it should --
@@ -397,19 +357,6 @@ export class Session {
     };
   }
 }
-
-/**
- * Replays store subframes at one decimal, but live input keeps full precision: two keys that round
- * to the same subframe would cost the engine the sub-frame step between them.
- * Events are drained while `at < frameStart + frameMs`, so only the lower bound needs guarding.
- */
-const subframeOf = (offsetMs: number) => Math.max(0, offsetMs / frameMs);
-
-const shadow = (engine: Engine): [number, number][] => {
-  let y = engine.falling.y;
-  while (legal(engine.falling.absoluteAt({ y: y - 1 }), engine.board.state)) y--;
-  return engine.falling.absoluteAt({ y });
-};
 
 /**
  * Lifts a piece until it is standing in open air. Spawn room is two rows over the field whatever

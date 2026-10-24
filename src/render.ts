@@ -23,6 +23,9 @@ const cell = 26;
 const spawnRoom = 5;
 const panel = 5 * cell;
 const previews = 5;
+/** A preview block, smaller than the board's, and the room the slot's title takes above them. */
+const pip = cell * 0.7;
+const slotTop = 34;
 
 export const createRenderer = (canvas: HTMLCanvasElement) => {
   const ctx = canvas.getContext("2d")!;
@@ -67,8 +70,28 @@ export const createRenderer = (canvas: HTMLCanvasElement) => {
     drawSlot(ctx, "NEXT", panel + cols * cell, 0, view.queue.slice(0, previews));
   };
 
+  /**
+   * The piece a click landed on, in hold or in the queue, if it landed on one. Measured against the
+   * drawing the last `draw` left, which is the one under the pointer however the stage has since
+   * been sized: the canvas is laid out at whatever scale its room allows, and the layout above is
+   * in cells regardless.
+   */
+  const pick = ({ clientX, clientY }: MouseEvent) => {
+    if (!last) return null;
+    const box = canvas.getBoundingClientRect();
+    const cols = last.board[0]?.length ?? 10;
+    const scale = box.width / (panel * 2 + cols * cell);
+    const x = (clientX - box.left) / scale;
+    // The two slots are laid out from the same line down, hold keeping one piece where the queue
+    // keeps five, so a row of the layout answers for both and the side it fell on decides which.
+    const slot = Math.floor(((clientY - box.top) / scale - slotTop) / (3 * pip));
+    if (slot < 0) return null;
+    if (x < panel) return slot === 0 ? last.hold : null;
+    return x < panel + cols * cell || slot >= previews ? null : (last.queue[slot] ?? null);
+  };
+
   addEventListener("resize", () => last && draw(last));
-  return draw;
+  return { draw, pick };
 };
 
 export const colors: Record<string, string> = {
@@ -200,10 +223,9 @@ const drawSlot = (
   ctx.fillText(title, left + 12, top + 20);
   minos.forEach((mino, i) => {
     const { w, h, data } = tetrominoes[mino].preview;
-    const size = cell * 0.7;
-    const x = left + (panel - w * size) / 2;
-    const y = top + 34 + i * (3 * size) + (2 - h) * size * 0.5;
+    const x = left + (panel - w * pip) / 2;
+    const y = top + slotTop + i * (3 * pip) + (2 - h) * pip * 0.5;
     ctx.fillStyle = colors[mino] ?? "#888";
-    for (const [bx, by] of data) ctx.fillRect(x + bx * size, y + by * size, size - 1, size - 1);
+    for (const [bx, by] of data) ctx.fillRect(x + bx * pip, y + by * pip, pip - 1, pip - 1);
   });
 };
